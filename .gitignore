@@ -7,3 +7,5 @@ data/
 products.db
 models/clip_finetuned/*.pt
 indexes/bm25_index.pkl
+frontend/node_modules/
+frontend/build/
