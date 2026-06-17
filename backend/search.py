@@ -94,8 +94,8 @@ def compose_query(image_path=None, text=None, image_weight=0.7):
 
 
 def hybrid_search(query_text=None, query_image=None,
-                  image_weight=0.7, top_k=10, alpha=0.6):
-
+                  image_weight=0.7, top_k=10, alpha=0.6,
+                  gender=None):  
     # compose query vector
     query_vector = compose_query(
         image_path=query_image,
@@ -154,6 +154,9 @@ def hybrid_search(query_text=None, query_image=None,
     for pid, score in ranked:
         product = db.get_product_by_id(int(pid))
         if product:
+            # filter by gender if specified
+            if gender and product[2].lower() != gender.lower():
+                continue
             results.append({
                 "id": product[0],
                 "name": product[1],
