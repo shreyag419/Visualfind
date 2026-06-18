@@ -7,8 +7,6 @@ import json
 from backend.database import Database
 from backend.embeddings import encode_text, encode_image
 
-# FAISS is an optional dependency at import time; defer loading so the module
-# can be imported in environments without FAISS installed.
 try:
     import faiss
     _HAS_FAISS = True
@@ -16,7 +14,6 @@ except Exception:
     faiss = None
     _HAS_FAISS = False
 
-# lazy-loaded globals
 faiss_index = None
 id_map = None
 
@@ -28,8 +25,7 @@ def _ensure_faiss_index_loaded():
 
     if not _HAS_FAISS:
         raise ImportError(
-            "FAISS is required for dense search. Install faiss and retry.\n"
-            "On Windows you may need to follow faiss installation instructions."
+            "FAISS is required for dense search. Install faiss and retry."
         )
 
     faiss_index = faiss.read_index("indexes/faiss_index.bin")
@@ -69,6 +65,7 @@ def _ensure_bm25_loaded():
     _bm25 = bm25_data["bm25"]
     _bm25_ids = bm25_data["product_ids"]
 
+
 def compose_query(image_path=None, text=None, image_weight=0.7):
     vectors = []
     weights = []
@@ -94,16 +91,15 @@ def compose_query(image_path=None, text=None, image_weight=0.7):
 
 
 def hybrid_search(query_text=None, query_image=None,
-                  image_weight=0.7, top_k=10, alpha=0.6,
-                  gender=None):  
-    # compose query vector
+                  image_weight=0.7, top_k=10, alpha=0.8,
+                  gender=None, article_type=None):
+
     query_vector = compose_query(
         image_path=query_image,
         text=query_text,
         image_weight=image_weight
     )
 
-    # dense search via FAISS
     _ensure_faiss_index_loaded()
     faiss_index.nprobe = 10
     distances, indices = faiss_index.search(query_vector, 50)
@@ -115,7 +111,6 @@ def hybrid_search(query_text=None, query_image=None,
         pid = int(id_map[idx])
         dense_scores[pid] = 1 / (rank + 1)
 
-    # sparse search via BM25
     sparse_scores = {}
     if query_text:
         _ensure_bm25_loaded()
@@ -126,7 +121,6 @@ def hybrid_search(query_text=None, query_image=None,
             pid = _bm25_ids[idx]
             sparse_scores[pid] = float(bm25_raw[idx])
 
-        # normalize sparse scores to 0-1
         max_score = max(sparse_scores.values()) if sparse_scores else 1
         if max_score > 0:
             sparse_scores = {
@@ -134,7 +128,6 @@ def hybrid_search(query_text=None, query_image=None,
                 for pid, score in sparse_scores.items()
             }
 
-    # combine scores
     all_ids = set(dense_scores) | set(sparse_scores)
     final_scores = {}
     for pid in all_ids:
@@ -148,14 +141,14 @@ def hybrid_search(query_text=None, query_image=None,
         reverse=True
     )[:top_k]
 
-    # fetch product details
     db = Database()
     results = []
     for pid, score in ranked:
         product = db.get_product_by_id(int(pid))
         if product:
-            # filter by gender if specified
             if gender and product[2].lower() != gender.lower():
+                continue
+            if article_type and article_type.lower() not in product[5].lower():
                 continue
             results.append({
                 "id": product[0],

@@ -4,12 +4,28 @@ import axios from "axios";
 
 const API_URL = "http://localhost:8000";
 
+const ARTICLE_TYPES = [
+  "Baby Dolls", "Bath Robe", "Belts", "Blazers", "Booties", "Boxers",
+  "Bra", "Briefs", "Camisoles", "Capris", "Casual Shoes", "Churidar",
+  "Clothing Set", "Dresses", "Dupatta", "Flats", "Flip Flops",
+  "Formal Shoes", "Heels", "Innerwear Vests", "Jackets", "Jeans",
+  "Jeggings", "Jumpsuit", "Kurta Sets", "Kurtas", "Kurtis", "Leggings",
+  "Lehenga Choli", "Lounge Pants", "Lounge Shorts", "Lounge Tshirts",
+  "Nehru Jackets", "Night suits", "Nightdress", "Patiala", "Rain Jacket",
+  "Rain Trousers", "Robe", "Rompers", "Salwar", "Salwar and Dupatta",
+  "Sandals", "Sarees", "Shapewear", "Shirts", "Shorts", "Shrug",
+  "Skirts", "Sports Sandals", "Sports Shoes", "Stockings", "Suspenders",
+  "Sweaters", "Sweatshirts", "Swimwear", "Tights", "Tops", "Track Pants",
+  "Tracksuits", "Trousers", "Trunk", "Tshirts", "Tunics", "Waistcoat"
+];
+
 function SearchBar({ setResults, setLoading, searchMode, setSearchMode }) {
   const [query, setQuery] = useState("");
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageWeight, setImageWeight] = useState(0.7);
   const [gender, setGender] = useState("");
+  const [articleType, setArticleType] = useState("");
   const [error, setError] = useState("");
 
   const onDrop = useCallback((acceptedFiles) => {
@@ -43,7 +59,8 @@ function SearchBar({ setResults, setLoading, searchMode, setSearchMode }) {
         response = await axios.post(`${API_URL}/search/text`, {
           query,
           top_k: 12,
-          gender: gender || null
+          gender: gender || null,
+          article_type: articleType || null
         });
         setResults(response.data.results);
 
@@ -88,8 +105,7 @@ function SearchBar({ setResults, setLoading, searchMode, setSearchMode }) {
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 mb-8">
-      
-      {/* Title */}
+
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
         Search Fashion Products
       </h1>
@@ -114,7 +130,7 @@ function SearchBar({ setResults, setLoading, searchMode, setSearchMode }) {
         ))}
       </div>
 
-      {/* Image Upload — show for image and composed modes */}
+      {/* Image Upload */}
       {(searchMode === "image" || searchMode === "composed") && (
         <div className="mb-4">
           {imagePreview ? (
@@ -152,7 +168,7 @@ function SearchBar({ setResults, setLoading, searchMode, setSearchMode }) {
         </div>
       )}
 
-      {/* Text Input — show for text and composed modes */}
+      {/* Text Input */}
       {(searchMode === "text" || searchMode === "composed") && (
         <div className="mb-4">
           <input
@@ -170,7 +186,7 @@ function SearchBar({ setResults, setLoading, searchMode, setSearchMode }) {
         </div>
       )}
 
-      {/* Fusion Slider — only for composed mode */}
+      {/* Fusion Slider */}
       {searchMode === "composed" && (
         <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
           <div className="flex justify-between items-center mb-2">
@@ -201,8 +217,8 @@ function SearchBar({ setResults, setLoading, searchMode, setSearchMode }) {
         </div>
       )}
 
-      {/* Gender Filter */}
-      <div className="mb-4">
+      {/* Filters Row */}
+      <div className="flex gap-3 mb-4 flex-wrap">
         <select
           value={gender}
           onChange={(e) => setGender(e.target.value)}
@@ -214,6 +230,17 @@ function SearchBar({ setResults, setLoading, searchMode, setSearchMode }) {
           <option value="Boys">Boys</option>
           <option value="Girls">Girls</option>
           <option value="Unisex">Unisex</option>
+        </select>
+
+        <select
+          value={articleType}
+          onChange={(e) => setArticleType(e.target.value)}
+          className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+        >
+          <option value="">All article types</option>
+          {ARTICLE_TYPES.map((type) => (
+            <option key={type} value={type}>{type}</option>
+          ))}
         </select>
       </div>
 

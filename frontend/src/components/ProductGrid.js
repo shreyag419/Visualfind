@@ -12,7 +12,7 @@ function SkeletonCard() {
   );
 }
 
-function ProductCard({ product }) {
+function ProductCard({ product, index }) {
   const imageName = product.image_path.replace(/\\/g, "/").split("/").pop();
   const imageUrl = `${API_URL}/images/${imageName}`;
 
@@ -28,7 +28,7 @@ function ProductCard({ product }) {
           }}
         />
         <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-          {Math.round(product.score * 100)}% match
+          #{index + 1}
         </div>
       </div>
       <div className="p-4">
@@ -46,6 +46,15 @@ function ProductCard({ product }) {
             {product.gender}
           </span>
         </div>
+        
+        <a
+          href={`https://www.myntra.com/${product.name.toLowerCase().replace(/ /g, '-')}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 block text-center text-xs py-2 bg-pink-50 dark:bg-pink-950 text-pink-600 dark:text-pink-400 rounded-lg hover:bg-pink-100 transition-colors font-medium"
+        >
+          View on Myntra →
+        </a>
       </div>
     </div>
   );
@@ -80,8 +89,8 @@ function ProductGrid({ results, loading }) {
         {results.length} results found
       </p>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {results.map((product) => (
-          <ProductCard key={product.id} product={product} />
+        {results.map((product, index) => (
+          <ProductCard key={product.id} product={product} index={index} />
         ))}
       </div>
     </div>

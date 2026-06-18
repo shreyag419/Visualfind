@@ -19,7 +19,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# allow frontend to talk to backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,60 +26,57 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# serve product images as static files
 app.mount("/images", StaticFiles(directory="data/raw/archive/images"), name="images")
 
-# ─── Health Check ─────────────────────────────────────
+
 @app.get("/health")
 def health():
     return {"status": "ok", "message": "VisualFind API is running"}
 
 
-# ─── Text Search ──────────────────────────────────────
 class TextSearchRequest(BaseModel):
     query: str
     top_k: Optional[int] = 10
-    gender: Optional[str] = None  # ← add this
+    gender: Optional[str] = None
+    article_type: Optional[str] = None
+
 
 @app.post("/search/text")
 def search_text(request: TextSearchRequest):
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
-    
+
     results = hybrid_search(
-    query_text=request.query,
-    top_k=request.top_k,
-    gender=request.gender  # ← add this
-)
+        query_text=request.query,
+        top_k=request.top_k,
+        gender=request.gender,
+        article_type=request.article_type
+    )
     return {"query": request.query, "results": results}
 
 
-# ─── Image Search ─────────────────────────────────────
 @app.post("/search/image")
 async def search_image(
     file: UploadFile = File(...),
     top_k: int = Form(default=10)
 ):
-    # save uploaded image temporarily
     temp_path = f"temp_{uuid.uuid4().hex}.jpg"
-    
+
     try:
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        
+
         results = hybrid_search(
             query_image=temp_path,
             top_k=top_k
         )
         return {"results": results}
-    
+
     finally:
-        # always delete temp file
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
 
-# ─── Composed Search ──────────────────────────────────
 @app.post("/search/composed")
 async def search_composed(
     file: UploadFile = File(...),
@@ -93,13 +89,13 @@ async def search_composed(
             status_code=400,
             detail="image_weight must be between 0.0 and 1.0"
         )
-    
+
     temp_path = f"temp_{uuid.uuid4().hex}.jpg"
-    
+
     try:
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        
+
         results = hybrid_search(
             query_text=query,
             query_image=temp_path,
@@ -111,22 +107,21 @@ async def search_composed(
             "image_weight": image_weight,
             "results": results
         }
-    
+
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
 
-# ─── Get Product by ID ────────────────────────────────
 @app.get("/products/{product_id}")
 def get_product(product_id: int):
     db = Database()
     product = db.get_product_by_id(product_id)
     db.close()
-    
+
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
     return {
         "id": product[0],
         "name": product[1],
